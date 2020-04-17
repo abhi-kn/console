@@ -312,7 +312,7 @@ func (s *Server) HTTPHandler() http.Handler {
 	}
 
 	handle("/api/console/monitoring-dashboard-config", authHandler(s.handleMonitoringDashboardConfigmaps))
-	handle("/api/console/crd/knative-event-sources", authHandler(s.handleKnativeEventSourceCrds))
+	handle("/api/console/knative-event-sources", authHandler(s.handleKnativeEventSourceCRDs))
 	handle("/api/console/version", authHandler(s.versionHandler))
 
 	// Helm Endpoints
@@ -356,7 +356,7 @@ func (s *Server) handleMonitoringDashboardConfigmaps(w http.ResponseWriter, r *h
 	s.MonitoringDashboardConfigMapLister.handleResources(w, r)
 }
 
-func (s *Server) handleKnativeEventSourceCrds(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleKnativeEventSourceCRDs(w http.ResponseWriter, r *http.Request) {
 	s.KnativeEventSourceCRDLister.handleResources(w, r)
 }
 

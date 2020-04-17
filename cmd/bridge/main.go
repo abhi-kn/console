@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/console/pkg/proxy"
 	"github.com/openshift/console/pkg/server"
 	"github.com/openshift/console/pkg/serverconfig"
+	"github.com/openshift/console/pkg/serverutils"
 )
 
 var (
@@ -567,6 +568,7 @@ func main() {
 				TLSClientConfig: srv.K8sProxyConfig.TLSClientConfig,
 			},
 		},
+		ResponseFilter: serverutils.KnativeEventSourceFilter,
 	}
 
 	listenURL := bridge.ValidateFlagIsURL("listen", *fListen)

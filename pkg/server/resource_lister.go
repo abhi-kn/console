@@ -9,11 +9,15 @@ import (
 	"github.com/openshift/console/pkg/serverutils"
 )
 
+// FilterFunction shall filter response before propagating
+type FilterFunction func(http.ResponseWriter, io.Reader)
+
 // ResourceLister determines the list of resources of a particular kind
 type ResourceLister struct {
-	BearerToken string
-	RequestURL  *url.URL
-	Client      *http.Client
+	BearerToken    string
+	RequestURL     *url.URL
+	Client         *http.Client
+	ResponseFilter FilterFunction
 }
 
 func (l *ResourceLister) handleResources(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +46,10 @@ func (l *ResourceLister) handleResources(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if l.ResponseFilter != nil {
+		l.ResponseFilter(w, resp.Body)
+	} else {
+		io.Copy(w, resp.Body)
+	}
 	resp.Body.Close()
 }
