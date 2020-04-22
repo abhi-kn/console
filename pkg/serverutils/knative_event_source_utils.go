@@ -37,19 +37,34 @@ type KnativeEventSourceList struct {
 	Items []KnativeEventSourceDefinition `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+type CounterWr struct {
+	io.Writer
+	Count int64
+}
+
+func (cw *CounterWr) Write(p []byte) (n int, err error) {
+	n, err = cw.Writer.Write(p)
+	cw.Count += int64(n)
+	return
+}
+
 // KnativeEventSourceFilter shall filter partial metadata from knative event sources CRDs before propagating
-func KnativeEventSourceFilter(w http.ResponseWriter, r io.Reader) {
+func KnativeEventSourceFilter(w io.Writer, r io.Reader) (int64, error) {
 	var knativeEventSourceList KnativeEventSourceList
+	cw := &CounterWr{Writer: w}
 
 	if err := json.NewDecoder(r).Decode(&knativeEventSourceList); err != nil {
 		plog.Errorf("Knative Event Source CRD response deserialization failed: %s", err)
-		SendResponse(w, http.StatusInternalServerError, ApiError{Err: err.Error()})
-		return
+		SendResponse(w.(http.ResponseWriter), http.StatusInternalServerError, ApiError{Err: err.Error()})
+		return 0, err
 	}
 
-	if err := json.NewEncoder(w).Encode(knativeEventSourceList); err != nil {
+	if err := json.NewEncoder(cw).Encode(knativeEventSourceList); err != nil {
 		plog.Errorf("Knative Event Source CRD response serialization failed: %s", err)
-		SendResponse(w, http.StatusInternalServerError, ApiError{Err: err.Error()})
-		return
+		SendResponse(w.(http.ResponseWriter), http.StatusInternalServerError, ApiError{Err: err.Error()})
+		return 0, err
 	}
+
+	plog.Printf("\n\nContent Length = %d\n", cw.Count)
+	return cw.Count, nil
 }

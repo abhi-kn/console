@@ -534,9 +534,9 @@ func main() {
 		bridge.FlagFatalf("k8s-mode", "must be one of: service-account, bearer-token, oidc, openshift")
 	}
 
-	srv.MonitoringDashboardConfigMapLister = &server.ResourceLister{
-		BearerToken: resourceListerToken,
-		RequestURL: &url.URL{
+	srv.MonitoringDashboardConfigMapLister = server.NewResourceLister(
+		resourceListerToken,
+		&url.URL{
 			Scheme: k8sEndpoint.Scheme,
 			Host:   k8sEndpoint.Host,
 			Path:   "/api/v1/namespaces/openshift-config-managed/configmaps",
@@ -544,17 +544,17 @@ func main() {
 				"labelSelector": {"console.openshift.io/dashboard=true"},
 			}.Encode(),
 		},
-
-		Client: &http.Client{
+		&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: srv.K8sProxyConfig.TLSClientConfig,
 			},
 		},
-	}
+		nil,
+	)
 
-	srv.KnativeEventSourceCRDLister = &server.ResourceLister{
-		BearerToken: resourceListerToken,
-		RequestURL: &url.URL{
+	srv.KnativeEventSourceCRDLister = server.NewResourceLister(
+		resourceListerToken,
+		&url.URL{
 			Scheme: k8sEndpoint.Scheme,
 			Host:   k8sEndpoint.Host,
 			Path:   "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions",
@@ -562,14 +562,13 @@ func main() {
 				"labelSelector": {"duck.knative.dev/source=true"},
 			}.Encode(),
 		},
-
-		Client: &http.Client{
+		&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: srv.K8sProxyConfig.TLSClientConfig,
 			},
 		},
-		ResponseFilter: serverutils.KnativeEventSourceFilter,
-	}
+		serverutils.KnativeEventSourceFilter,
+	)
 
 	listenURL := bridge.ValidateFlagIsURL("listen", *fListen)
 	switch listenURL.Scheme {
