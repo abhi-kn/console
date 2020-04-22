@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/console/pkg/proxy"
 	"github.com/openshift/console/pkg/server"
 	"github.com/openshift/console/pkg/serverconfig"
+	"github.com/openshift/console/pkg/serverutils"
 )
 
 var (
@@ -549,6 +550,25 @@ func main() {
 				TLSClientConfig: srv.K8sProxyConfig.TLSClientConfig,
 			},
 		},
+	}
+
+	srv.KnativeEventSourceCRDLister = &server.ResourceLister{
+		BearerToken: resourceListerToken,
+		RequestURL: &url.URL{
+			Scheme: k8sEndpoint.Scheme,
+			Host:   k8sEndpoint.Host,
+			Path:   "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions",
+			RawQuery: url.Values{
+				"labelSelector": {"duck.knative.dev/source=true"},
+			}.Encode(),
+		},
+
+		Client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: srv.K8sProxyConfig.TLSClientConfig,
+			},
+		},
+		ResponseFilter: serverutils.KnativeEventSourceFilter,
 	}
 
 	listenURL := bridge.ValidateFlagIsURL("listen", *fListen)

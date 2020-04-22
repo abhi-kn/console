@@ -9,11 +9,15 @@ import (
 	"github.com/openshift/console/pkg/serverutils"
 )
 
+// FilterFunction shall filter response before propagating
+type FilterFunction func(http.ResponseWriter, io.Reader)
+
 // ResourceLister determines the list of resources of a particular kind
 type ResourceLister struct {
-	BearerToken string
-	RequestURL  *url.URL
-	Client      *http.Client
+	BearerToken    string
+	RequestURL     *url.URL
+	Client         *http.Client
+	ResponseFilter FilterFunction
 }
 
 func (l *ResourceLister) handleResources(w http.ResponseWriter, r *http.Request) {
@@ -37,11 +41,15 @@ func (l *ResourceLister) handleResources(w http.ResponseWriter, r *http.Request)
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("console service account cannot list resource: %s", resp.Status)
-		serverutils.SendResponse(w, http.StatusInternalServerError, serverutils.ApiError{Err: err.Error()})
+		serverutils.SendResponse(w, resp.StatusCode, serverutils.ApiError{Err: err.Error()})
 		return
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if l.ResponseFilter != nil {
+		l.ResponseFilter(w, resp.Body)
+	} else {
+		io.Copy(w, resp.Body)
+	}
 	resp.Body.Close()
 }
